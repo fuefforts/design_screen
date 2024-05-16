@@ -6,6 +6,7 @@ import {
   LockState,
   PenType,
   calcInView,
+  calcPenRect,
   calcWorldAnchors,
   calcWorldRects,
   calcWorldRectsNode,
@@ -421,7 +422,7 @@ export class Canvas {
     } = {}
   ) {
     if (worldRectIsReady) {
-      // calcPenRect(pen);
+      calcPenRect(pen)
     } else {
       calcWorldRects(pen)
     }
@@ -437,8 +438,6 @@ export class Canvas {
     if (globalStore.path2dDraws[pen.name]) {
       this.store.path2dMap.set(pen, globalStore.path2dDraws[pen.name](pen))
     }
-
-    console.log(this.store.path2dMap)
 
     pen.calculative.patchFlags = true
     this.patchFlags = true
@@ -1419,9 +1418,19 @@ export class Canvas {
     // console.log(center)
 
     this.calibrateMouse(center)
-    const itemArr = document.querySelectorAll('.dragitem')
-
     const s = scale / this.store.data.scale
+
+    const itemArr = document.querySelectorAll('.dragitem')
+    // 应用缩放和位置调整
+    Array.from(itemArr).forEach((f, fi) => {
+      const pens = this.store.data.pens[fi]
+      scalePenNode(pens, s, center, f, {
+        x: this.store.data.x,
+        y: this.store.data.y
+      })
+      f.style.left = pens.calculative.worldRect.x + this.store.data.x + 'px'
+      f.style.top = pens.calculative.worldRect.y + this.store.data.y + 'px'
+    })
     this.store.data.pens.forEach((pen) => {
       if (pen.parentId) {
         return
@@ -1442,22 +1451,12 @@ export class Canvas {
         }
       }
       this.updatePenRect(pen, { worldRectIsReady: true })
-      // this.execPenResize(pen);
+      this.execPenResize(pen)
     })
     this.calcActiveRect()
     scalePoint(this.store.data.origin, s, center)
     this.store.data.scale = scale
     this.store.data.center = center
-    // 应用缩放和位置调整
-    Array.from(itemArr).forEach((f, fi) => {
-      const pens = this.store.data.pens[fi]
-      scalePenNode(pens, s, center, f, {
-        x: this.store.data.x,
-        y: this.store.data.y
-      })
-      f.style.left = pens.calculative.worldRect.x + this.store.data.x + 'px'
-      f.style.top = pens.calculative.worldRect.y + this.store.data.y + 'px'
-    })
 
     this.canvasImage.init()
     this.canvasTemplate.init()
@@ -1468,6 +1467,17 @@ export class Canvas {
     pt.x -= this.store.data.x
     pt.y -= this.store.data.y
     return pt
+  }
+
+  /**
+   * 执行 pen ，以及 pen 的子孙节点的 onResize 生命周期函数
+   */
+  private execPenResize(pen: Pen) {
+    pen.onResize?.(pen)
+    // pen.children?.forEach((chlidId) => {
+    //   const child = this.store.pens[chlidId];
+    //   child && this.execPenResize(child);
+    // });
   }
 
   renderHoverPoint = () => {

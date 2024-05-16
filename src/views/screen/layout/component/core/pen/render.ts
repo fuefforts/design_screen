@@ -372,6 +372,8 @@ export function setHover(pen: Pen, hover = true) {
 }
 
 export function calcWorldAnchors(pen: Pen) {
+  console.log(pen)
+
   const store: Meta2dStore = pen.calculative.canvas.store
   let anchors: Point[] = []
   if (pen.anchors) {
@@ -390,6 +392,8 @@ export function calcWorldAnchors(pen: Pen) {
       anchors.push(calcWorldPointOfPen(pen, anchor))
     })
   }
+
+  console.log(anchors, '----')
 
   // Default anchors of node
   if (!anchors.length && !pen.type && !pen.calculative.canvas.parent.isCombine(pen)) {
@@ -424,10 +428,15 @@ export function calcWorldAnchors(pen: Pen) {
 }
 
 export function calcWorldPointOfPen(pen: Pen, pt: Point) {
+  console.log(pen, '12')
+
   const p: Point = { ...pt }
   const { x, y, width, height } = pen.calculative.worldRect
   p.x = x + width * pt.x
   p.y = y + height * pt.y
+  console.log(x, y, width, height)
+  console.log(p.x, p.y)
+
   if (pt.prev) {
     p.prev = {
       penId: pen.id,
@@ -1601,4 +1610,27 @@ export function getToAnchor(pen: Pen) {
   }
 
   return pen.calculative.worldAnchors[pen.calculative.worldAnchors.length - 1]
+}
+
+export function calcPenRect(pen: Pen) {
+  const worldRect = pen.calculative.worldRect
+  if (!pen.parentId) {
+    Object.assign(pen, worldRect)
+    return
+  }
+  const store = pen.calculative.canvas.store
+  const parentRect = store.pens[pen.parentId].calculative.worldRect
+  Object.assign(pen, calcRelativeRect(worldRect, parentRect))
+}
+
+export function calcRelativeRect(rect: Rect, worldRect: Rect) {
+  const relRect: Rect = {
+    x: (rect.x - worldRect.x) / worldRect.width,
+    y: (rect.y - worldRect.y) / worldRect.height,
+    width: rect.width / worldRect.width,
+    height: rect.height / worldRect.height
+  }
+  calcRightBottom(relRect)
+
+  return relRect
 }
